@@ -1,0 +1,180 @@
+<template>
+    <template if:false={authChecked}>
+        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+    </template>
+
+    <template if:true={authChecked}>
+        <template if:true={isAuthorized}>
+            <div class="table-wrapper">
+
+                <!-- Header -->
+                <div class="table-header">
+                    <lightning-button label="Refresh All Entities" icon-name="utility:refresh" onclick={handleRefresh}>
+                    </lightning-button>
+                </div>
+
+                <!-- Spinner -->
+                <template if:true={isLoading}>
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </template>
+
+                <!-- Error -->
+                <template if:true={error}>
+                    <div class="error-state">
+                        <lightning-icon icon-name="utility:error" size="small" variant="error"></lightning-icon>
+                        <span>{error}</span>
+                    </div>
+                </template>
+
+                <!-- Table -->
+                <template if:false={isLoading}>
+                    <div class="slds-scrollable_x">
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+
+                            <!-- Column Headers -->
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <template for:each={visibleColumns} for:item="col">
+                                        <th key={col.key} scope="col" class="slds-text-title_caps col-header">
+                                            <div class="slds-truncate" title={col.label}>{col.label}</div>
+                                        </th>
+                                    </template>
+                                </tr>
+                            </thead>
+
+                            <!-- Table Body -->
+                            <tbody>
+                                <template for:each={entities} for:item="row">
+                                    <tr key={row.id} class="slds-hint-parent">
+
+                                        <!-- Entity Name (Owner) -->
+                                        <td data-label="Entity Name">
+                                            <div class="slds-truncate entity-name" title={row.entityName}>
+                                                {row.entityName}
+                                            </div>
+                                        </td>
+
+                                        <!-- SF Name (Owner) -->
+                                        <td data-label="Entity Name">
+                                            <div class="slds-truncate entity-name" title={row.sfObjectName}>
+                                                {row.sfObjectName}
+                                            </div>
+                                        </td>
+
+                                        <!-- Unmapped Fields -->
+                                        <td data-label="Unmapped Fields">
+                                            <div class="slds-truncate">
+                                                <template if:true={row.hasUnmappedFields}>
+                                                    <span class="badge badge-warning">{row.unmappedFields}</span>
+                                                </template>
+                                                <template if:false={row.hasUnmappedFields}>
+                                                    <span class="badge badge-success">{row.unmappedFields}</span>
+                                                </template>
+                                            </div>
+                                        </td>
+
+                                        <!-- Last Sync (empty - placeholder) -->
+                                        <td data-label="Last Sync">
+                                            <div class="slds-truncate entity-name" title={row.lastSyncTime}>
+                                                {row.lastSyncTime}
+                                            </div>
+                                        </td>
+
+                                        <!-- Sync Status (empty - placeholder) -->
+                                        <td data-label="Sync Status">
+                                            <div class="slds-truncate">{row.syncStatus}</div>
+                                        </td>
+
+                                        <!-- Sync Now -->
+                                        <td data-label="Sync Now">
+                                            <lightning-button label="Sync Now" icon-name="utility:sync" data-id={row.id}
+                                                onclick={handleSyncNow} disabled={row.isSyncing}>
+                                            </lightning-button>
+                                        </td>
+
+                                        <!-- Retry Failed -->
+                                        <template if:true={showRetryColumn}>
+                                        <td data-label="Retry">
+                                            <template if:true={row.canRetry}>
+                                                <lightning-button label="Retry Failed" icon-name="utility:redo"
+                                                    variant="destructive-text" data-id={row.id} onclick={handleRetry}>
+                                                </lightning-button>
+                                            </template>
+                                        </td>
+                                        </template>
+
+                                        <!-- Auto Sync -->
+                                        <td data-label="Auto Sync">
+                                            <lightning-input type="toggle" checked={row.isAutoActive} data-id={row.id}
+                                                onchange={handleAutoSync}>
+                                            </lightning-input>
+                                        </td>
+
+                                        <!-- Edit -->
+                                        <td data-label="Edit">
+                                            <lightning-button-icon icon-name="utility:edit" variant="border-filled"
+                                                alternative-text="Edit" data-id={row.id} onclick={handleEdit}>
+                                            </lightning-button-icon>
+                                        </td>
+
+                                        <!-- Delete -->
+                                        <td data-label="Delete">
+                                            <lightning-button-icon icon-name="utility:delete" variant="border-filled"
+                                                alternative-text="Delete" data-id={row.id} onclick={handleDeleteClick}>
+                                            </lightning-button-icon>
+                                        </td>
+
+                                    </tr>
+                                </template>
+                            </tbody>
+
+                        </table>
+                        <!-- Delete Confirmation Modal -->
+                        <template if:true={showDeleteModal}>
+                            <section role="dialog" class="slds-modal slds-fade-in-open">
+                                <div class="slds-modal__container">
+                                    <header class="slds-modal__header">
+                                        <h2 class="slds-text-heading_medium">Confirm Delete</h2>
+                                    </header>
+                                    <div class="slds-modal__content slds-p-around_medium">
+                                        <p>Are you sure you want to delete this record? This action cannot be undone.
+                                        </p>
+                                    </div>
+                                    <footer class="slds-modal__footer">
+                                        <lightning-button label="Cancel" onclick={handleDeleteCancel}>
+                                        </lightning-button>
+                                        <lightning-button label="Delete" variant="destructive"
+                                            onclick={handleDeleteConfirm}>
+                                        </lightning-button>
+                                    </footer>
+                                </div>
+                            </section>
+                            <div class="slds-backdrop slds-backdrop_open"></div>
+                        </template>
+                    </div>
+
+                    <!-- Empty State -->
+                    <template if:true={isEmpty}>
+                        <div class="empty-state">
+                            <lightning-icon icon-name="utility:data_mapping" size="medium"></lightning-icon>
+                            <p>No records found.</p>
+                        </div>
+                    </template>
+                </template>
+
+            </div>
+        </template>
+
+        <template if:false={isAuthorized}>
+            <template if:true={authChecked}>
+                <template if:false={isLoading}>
+                    <div class="slds-p-around_large slds-text-align_center">
+                        <lightning-icon icon-name="utility:lock" size="medium" variant="error"></lightning-icon>
+                        <p class="slds-m-top_small slds-text-heading_small">
+                            You are not authorized to access this feature.
+                        </p>
+                    </div>
+                </template>
+            </template>
+        </template>
+    </template>

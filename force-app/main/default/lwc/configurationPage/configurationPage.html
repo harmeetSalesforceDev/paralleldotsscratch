@@ -1,0 +1,165 @@
+<template>
+    <lightning-card>
+        <!-- SPINNER OVERLAY -->
+        <template lwc:if={isLoading}>
+            <div class="spinner-backdrop">
+                <div class="spinner-container">
+                    <lightning-spinner
+                        alternative-text="Loading"
+                        size="large"
+                        variant="brand">
+                    </lightning-spinner>
+
+                    <p class="slds-m-top_medium slds-text-body_regular">
+                        Processing your request…
+                    </p>
+                </div>
+            </div>
+        </template>
+
+        <!-- Modal -->
+    <template lwc:if={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <!-- Modal Header -->
+                <header class="slds-modal__header">
+                    <button 
+                        class="slds-button slds-button_icon slds-modal__close"
+                        onclick={closeModal}>
+                        <lightning-icon 
+                            icon-name="utility:close"
+                            size="small"
+                            alternative-text="close">
+                        </lightning-icon>
+                    </button>
+                    <h2 id="modal-heading" class="slds-text-heading_medium">
+                        Confirmation
+                    </h2>
+                </header>
+                <!-- Modal Body -->
+                <div class="slds-modal__content slds-p-around_medium slds-text-align_center">
+                    <h5 class="slds-text-heading_small">Are you sure you want to reset the credentials?</h5>
+                </div>
+                <!-- Modal Footer -->
+                <footer class="slds-modal__footer">
+                    <div class="slds-grid slds-grid_align-end slds-gutters_small">
+                    <lightning-button 
+                        label="No"
+                        onclick={closeModal}>
+                    </lightning-button>
+
+                    <lightning-button 
+                        variant="brand"
+                        label="Yes"
+                        onclick={handleResetCredent}>
+                    </lightning-button>
+                    </div>
+                </footer>
+            </div>
+        </section>
+        <!-- Backdrop -->
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+
+    <!-- FORM UI -->
+        <template lwc:if={showForm}>
+            <div class="slds-size_12-of-12 slds-m-vertical_large slds-m-top_none">
+                <div class="slds-container_x-large slds-container_center slds-p-horizontal_small">
+                    <div class="slds-grid slds-wrap slds-p-around_x-large shadow">
+                        <div class="slds-size_12-of-12">
+                            <div class="slds-form slds-wrap slds-grid slds-gutters signup-form-gl">
+                                <div class="slds-col slds-size_12-of-12 slds-form-element"> 
+                                    <h2 class="slds-text-heading_large slds-m-bottom_large">
+                                        Add Credentials
+                                    </h2>
+                                    <form  autocomplete="off">
+                                    <div class="slds-grid slds-wrap slds-gutters">
+
+                                        <div class="slds-col slds-size_6-of-12 slds-small-size_12-of-12">
+                                            <lightning-input
+                                                name="clientId"
+                                                type="password"
+                                                placeholder="Client Id*"
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                        </div>
+
+                                        <div class="slds-col slds-size_6-of-12 slds-small-size_12-of-12">
+                                            <lightning-input
+                                                name="clientSecret"
+                                                type="password"
+                                                placeholder="Client Secret*"
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                        </div>
+
+                                        <div class="slds-col slds-size_6-of-12 slds-small-size_12-of-12">
+                                            <lightning-input
+                                                name="orgId"
+                                                type="text"
+                                                placeholder="Org Id*"
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                        </div>
+
+                                        <div class="slds-col slds-size_6-of-12 slds-small-size_12-of-12">
+                                            <lightning-input
+                                                name="projectId"
+                                                type="text"
+                                                placeholder="Project Id*"
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                        </div>
+
+                                    </div>
+                                    </form>
+                                </div>
+
+                                <div class="slds-col slds-size_12-of-12 slds-align_absolute-center slds-m-top_large">
+                                    <a
+                                        onclick={handleSubmit}
+                                        class="green-button slds-text-uppercase slds-text-heading_medium slds-p-horizontal_xx-large slds-p-vertical_medium">
+                                        Authorize
+                                    </a>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- SUCCESS UI -->
+        <template lwc:else>
+        <div class="slds-p-around_large">
+
+            <!-- Top-right Reset button -->
+            <div class="slds-grid slds-grid_align-end">
+                <lightning-button
+                    label="Reset Credentials"
+                    variant="neutral"
+                    onclick={handleReset}>
+                </lightning-button>
+            </div>
+
+            <!-- Success content -->
+            <div class="slds-p-vertical_xx-large slds-align_absolute-center slds-text-align_center">
+                <lightning-icon
+                    icon-name={feedBackMessage.iconName}
+                    size="large"
+                    variant="success"
+                    class="slds-m-bottom_large">
+                </lightning-icon>
+
+                <h2 class="slds-text-heading_large slds-m-bottom_small">
+                    {feedBackMessage.message}
+                </h2>
+            </div>
+        </div>
+        </template>
+
+
+    </lightning-card>
+</template>

@@ -1,0 +1,233 @@
+/* =============================
+   CARD HEADER
+   ============================= */
+.mapping-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.mapping-header__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.2rem;
+    letter-spacing: -0.01em;
+}
+
+.mapping-header__subtitle {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+/* Mode Badge */
+.mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.mode-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mode-badge--existing {
+    background: #f0f9ff;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+}
+
+.mode-badge--existing .mode-badge__dot { background: #0ea5e9; }
+
+.mode-badge--new {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.mode-badge--new .mode-badge__dot { background: #22c55e; }
+
+
+/* =============================
+   TABLE STRUCTURE
+   ============================= */
+.mapping-table {
+    padding: 0 1.5rem;
+}
+
+/* ---- Table Head ---- */
+.mapping-table__head {
+    display: grid;
+    grid-template-columns: 1fr 48px 1fr;
+    gap: 0;
+    padding: 0.75rem 0 0.5rem;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 0.25rem;
+}
+
+.mapping-table__head-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #94a3b8;
+}
+
+.mapping-table__head-cell--arrow {
+    justify-content: center;
+}
+
+.target-head-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.select-all-hint {
+    font-size: 0.65rem;
+    color: #c1c9d4;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 0.1rem;
+}
+
+.head-icon {
+    flex-shrink: 0;
+    color: #c1c9d4;
+}
+
+/* ---- Table Body ---- */
+.mapping-table__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+
+/* =============================
+   MAPPING ROW
+   ============================= */
+.mapping-row {
+    display: grid;
+    grid-template-columns: 1fr 48px 1fr;
+    align-items: center;
+    gap: 0;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8fafc;
+    transition: background 0.15s;
+    border-radius: 8px;
+    margin: 0 -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.mapping-row:hover {
+    background: #f8fafc;
+}
+
+.mapping-row:last-child {
+    border-bottom: none;
+}
+
+/* ---- Source ---- */
+.mapping-row__source {
+    display: flex;
+    align-items: center;
+}
+
+.field-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.7rem;
+    background: #f0f9ff;
+    border: 1px solid #e0f2fe;
+    border-radius: 6px;
+    max-width: 100%;
+}
+
+.field-pill__name {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: #0369a1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.field-pill__req {
+    font-size: 0.5rem;
+    color: #f43f5e;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+/* ---- Arrow ---- */
+.mapping-row__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    color: #94a3b8;
+}
+
+.arrow-line {
+    width: 10px;
+    height: 1px;
+    background: #cbd5e1;
+    flex-shrink: 0;
+}
+
+/* ---- Target ---- */
+.mapping-row__target {
+    display: flex;
+    align-items: center;
+}
+
+.combobox-wrapper {
+    width: 100%;
+}
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.include-label {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+
+/* =============================
+   FOOTER
+   ============================= */
+.mapping-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.625rem;
+    padding: 1rem 1.5rem 1.25rem;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 0.5rem;
+}

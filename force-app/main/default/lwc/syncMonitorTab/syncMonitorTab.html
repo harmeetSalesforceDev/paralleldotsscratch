@@ -1,0 +1,151 @@
+<template>
+    <lightning-card>
+        <div class="monitor-wrapper">
+
+            <!-- Header -->
+            <div class="monitor-header">
+                <div class="monitor-header__text">
+                    <h2 class="monitor-title">Sync Monitor</h2>
+                    <p class="monitor-subtitle">Select a mapping to view its sync history</p>
+                </div>
+                <template if:true={selectedMappingId}>
+                    <lightning-button-icon
+                        icon-name="utility:refresh"
+                        variant="border-filled"
+                        alternative-text="Refresh"
+                        onclick={handleRefresh}>
+                    </lightning-button-icon>
+                </template>
+            </div>
+
+            <!-- Mapping Selector -->
+            <div class="selector-section">
+                <lightning-combobox
+                    label="Select Mapping"
+                    placeholder="Search and select a mapping..."
+                    value={selectedMappingId}
+                    options={mappingOptions}
+                    onchange={handleMappingChange}>
+                </lightning-combobox>
+            </div>
+
+            <!-- No selection -->
+            <template if:false={selectedMappingId}>
+                <div class="empty-state">
+                    <lightning-icon icon-name="utility:search" size="large" alternative-text="Select"></lightning-icon>
+                    <p>Select a mapping above to view sync logs</p>
+                </div>
+            </template>
+
+            <template if:true={selectedMappingId}>
+
+                <!-- Loading -->
+                <template if:true={isLoading}>
+                    <div class="loading-wrapper">
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </div>
+                </template>
+
+                <template if:false={isLoading}>
+
+                    <!-- No logs -->
+                    <template if:true={isEmpty}>
+                        <div class="empty-state">
+                            <lightning-icon icon-name="utility:sync" size="large" alternative-text="No logs"></lightning-icon>
+                            <p>No sync logs found for this mapping yet.</p>
+                        </div>
+                    </template>
+
+                    <!-- Logs table -->
+                    <template if:false={isEmpty}>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Start Time</th>
+                                        <th scope="col">End Time</th>
+                                        <th scope="col">Row To Be Synced</th>
+                                        <th scope="col">Synced</th>
+                                        <th scope="col">Errors</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={logs} for:item="log">
+                                        <tr key={log.Id}>
+                                            <td class="cell-name">{log.Name}</td>
+                                            <td>
+                                                <span class={log.statusClass}>
+                                                    {log.ParallelDots__Status__c}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <lightning-formatted-date-time
+                                                    value={log.ParallelDots__Start_Time__c}
+                                                    year="numeric" month="short" day="2-digit"
+                                                    hour="2-digit" minute="2-digit">
+                                                </lightning-formatted-date-time>
+                                            </td>
+                                            <td>
+                                                <template if:true={log.ParallelDots__End_Time__c}>
+                                                    <lightning-formatted-date-time
+                                                        value={log.ParallelDots__End_Time__c}
+                                                        year="numeric" month="short" day="2-digit"
+                                                        hour="2-digit" minute="2-digit">
+                                                    </lightning-formatted-date-time>
+                                                </template>
+                                                <template if:false={log.ParallelDots__End_Time__c}>
+                                                    <span class="cell-muted">—</span>
+                                                </template>
+                                            </td>
+                                            <td class="cell-number">{log.ParallelDots__Total_Processed__c}</td>
+                                            <td class="cell-number">{log.ParallelDots__Total_Synced__c}</td>
+                                            <td>
+                                                <template if:true={log.hasError}>
+                                                    <lightning-button
+                                                        label="View Error"
+                                                        variant="destructive-text"
+                                                        data-id={log.Id}
+                                                        onclick={handleViewError}>
+                                                    </lightning-button>
+                                                </template>
+                                                <template if:false={log.hasError}>
+                                                    <span class="cell-muted">—</span>
+                                                </template>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                </template>
+            </template>
+
+        </div>
+    </lightning-card>
+
+    <!-- Error Modal -->
+    <template if:true={showErrorModal}>
+        <section class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-modal__title">Error Details</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close" onclick={closeErrorModal}>
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    </button>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <pre class="error-pre">{activeError}</pre>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Close" onclick={closeErrorModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>

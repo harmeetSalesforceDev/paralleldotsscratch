@@ -1,0 +1,114 @@
+<template>
+    <lightning-card>
+
+        <!-- Header -->
+        <div class="review-header">
+            <div class="review-header__icon">
+                <lightning-icon icon-name="doctype:unknown" size="small" alternative-text="Import"></lightning-icon>
+            </div>
+            <div class="review-header__text">
+                <h2 class="review-header__title">Review &amp; Start Import</h2>
+                <p class="review-header__subtitle">Confirm your configuration before proceeding</p>
+            </div>
+        </div>
+
+        <div class="review-body">
+
+            <!-- Selection Summary -->
+            <div class="summary-section">
+                <div class="summary-section__label">Selected Object</div>
+                <div class="summary-card">
+                    <div class="summary-card__icon">
+                        <lightning-icon icon-name="standard:data_streams" size="x-small"
+                            alternative-text="Salesforce Object"></lightning-icon>
+                    </div>
+                    <div class="summary-card__name">{sfObject}</div>
+                    <div class="summary-card__check">
+                        <lightning-icon icon-name="utility:check" size="x-small" alternative-text="Selected">
+                        </lightning-icon>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card__icon">
+                        <lightning-icon icon-name="standard:dataset" size="x-small"
+                            alternative-text="Shelfwatch Object"></lightning-icon>
+                    </div>
+                    <div class="summary-card__name">{shelfObject}</div>
+                    <div class="summary-card__check">
+                        <lightning-icon icon-name="utility:check" size="x-small" alternative-text="Selected">
+                        </lightning-icon>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-section">
+                <div class="stats-section__label">Import Summary</div>
+
+                <!-- Existing Entity Mode -->
+                <template if:false={isNewEntity}>
+                    <div class="stats-grid">
+
+                        <div class="stat-card stat-card--mapped">
+                            <div class="stat-card__bar stat-card__bar--mapped"></div>
+                            <div class="stat-card__icon">
+                                <lightning-icon icon-name="utility:check" size="small" alternative-text="Mapped">
+                                </lightning-icon>
+                            </div>
+                            <div class="stat-card__content">
+                                <div class="stat-card__number">{mappedCount}</div>
+                                <div class="stat-card__label">Mapped Fields</div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card stat-card--unmapped">
+                            <div class="stat-card__bar stat-card__bar--unmapped"></div>
+                            <div class="stat-card__icon">
+                                <lightning-icon icon-name="utility:close" size="small" alternative-text="Unmapped">
+                                </lightning-icon>
+                            </div>
+                            <div class="stat-card__content">
+                                <div class="stat-card__number">{unmappedCount}</div>
+                                <div class="stat-card__label">Unmapped Fields</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+
+                <!-- New Entity Mode -->
+                <template if:true={isNewEntity}>
+                    <div class="stats-grid stats-grid--single">
+
+                        <div class="stat-card stat-card--new">
+                            <div class="stat-card__bar stat-card__bar--new"></div>
+                            <div class="stat-card__icon">
+                                <lightning-icon icon-name="utility:add" size="small"
+                                    alternative-text="Fields to create"></lightning-icon>
+                            </div>
+                            <div class="stat-card__content">
+                                <div class="stat-card__number">{selectedCount}</div>
+                                <div class="stat-card__label">Fields to be Created</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+
+            <!-- Ready Banner -->
+            <div class="ready-banner">
+                <lightning-icon icon-name="utility:info" size="x-small" alternative-text="Info"></lightning-icon>
+                <span>Ready to import &mdash; clicking Save will apply your configuration.</span>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="review-footer">
+            <lightning-button label="Previous" onclick={handleBack}></lightning-button>
+            <lightning-button variant="brand" label="Save" onclick={handleImport}></lightning-button>
+        </div>
+
+    </lightning-card>
+</template>

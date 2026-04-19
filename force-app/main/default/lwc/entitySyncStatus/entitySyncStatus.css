@@ -1,0 +1,145 @@
+/* ── Wrapper ─────────────────────────────────────────────────────────── */
+.table-wrapper {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+}
+
+/* ── Header Bar ──────────────────────────────────────────────────────── */
+.table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #dddbda;
+    background: #f3f3f3;
+}
+
+.table-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #16325c;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* ── Column Headers ──────────────────────────────────────────────────── */
+.col-header {
+    background: #fafaf9;
+    color: #514f4d;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+/* ── Audience Name ───────────────────────────────────────────────────── */
+.audience-name {
+    color: #0070d2;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.audience-name:hover {
+    text-decoration: underline;
+}
+
+/* ── Placeholder (empty fields) ──────────────────────────────────────── */
+.placeholder-text {
+    color: #c9c7c5;
+    font-size: 0.9rem;
+}
+
+/* ── Unmapped Field Badges ───────────────────────────────────────────── */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #7d5200;
+    border: 1px solid #f0c65e;
+}
+
+.badge-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+/* ── Toggle Switch ───────────────────────────────────────────────────── */
+.toggle-cell {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #c9c7c5;
+    border-radius: 22px;
+    transition: background 0.2s ease;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: #0070d2;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(18px);
+}
+
+/* ── Error State ─────────────────────────────────────────────────────── */
+.error-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fdecea;
+    color: #c62828;
+    font-size: 0.875rem;
+}
+
+/* ── Empty State ─────────────────────────────────────────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 48px 16px;
+    color: #706e6b;
+}
+
+.empty-state p {
+    margin-top: 12px;
+    font-size: 0.95rem;
+}

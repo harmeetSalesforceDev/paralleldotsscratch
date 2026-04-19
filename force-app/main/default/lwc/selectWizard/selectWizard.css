@@ -1,0 +1,82 @@
+.stepper-wrapper {
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 0.5rem;
+}
+
+.stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Each step node */
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 100px;
+}
+
+/* Connector line */
+.step-line {
+    flex: 1;
+    height: 2px;
+    background: #d1d5db;
+    margin-bottom: 24px; /* aligns with circle center */
+    transition: background 0.3s ease;
+}
+
+/* Circle */
+.step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: #fff;
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+}
+
+/* Label */
+.step-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #9ca3af;
+    text-align: center;
+    white-space: nowrap;
+    transition: color 0.25s ease;
+}
+
+/* --- States --- */
+
+/* Active */
+.step.active .step-circle {
+    background: #0176d3;
+    border-color: #0176d3;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(1, 118, 211, 0.15);
+}
+.step.active .step-label {
+    color: #0176d3;
+    font-weight: 600;
+}
+
+/* Completed */
+.step.completed .step-circle {
+    background: #2e844a;
+    border-color: #2e844a;
+    color: #fff;
+}
+.step.completed .step-label {
+    color: #2e844a;
+}
+.step.completed + .step-line {
+    background: #2e844a;
+}

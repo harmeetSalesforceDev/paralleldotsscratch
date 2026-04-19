@@ -1,0 +1,129 @@
+<template>
+    <lightning-card>
+
+        <!-- Card Header -->
+        <div class="mapping-header">
+            <div class="mapping-header__titles">
+                <h2 class="mapping-header__title">{cardTitle}</h2>
+                <p class="mapping-header__subtitle">Salesforce Object: <strong>{sourceObject}</strong></p>
+                <template if:false={isNew}>
+                    <p class="mapping-header__subtitle">Shelfwatch Object: <strong>{targetObject}</strong></p>
+                </template>
+                <template if:true={isNew}>
+                    <p class="mapping-header__subtitle">Mode:
+                        <strong>New Entity — fields will be created in Shelfwatch</strong>
+                    </p>
+                </template>
+            </div>
+            <div class="mapping-header__mode-badge">
+                <template if:true={isNew}>
+                    <span class="mode-badge mode-badge--new">
+                <span class="mode-badge__dot"></span>
+                    New Object Mode
+                    </span>
+                </template>
+                <template if:false={isNew}>
+                    <span class="mode-badge mode-badge--existing">
+                <span class="mode-badge__dot"></span>
+                    Existing Object Mode
+                    </span>
+                </template>
+            </div>
+        </div>
+
+        <!-- Column Headers -->
+        <div class="mapping-table">
+            <div class="mapping-table__head">
+
+                <div class="mapping-table__head-cell mapping-table__head-cell--source">
+                    <lightning-icon icon-name="standard:data_streams" size="x-small"
+                        alternative-text="Salesforce Object"></lightning-icon>
+                    Salesforce Fields
+                </div>
+
+                <div class="mapping-table__head-cell mapping-table__head-cell--arrow"></div>
+
+                <div class="mapping-table__head-cell mapping-table__head-cell--target">
+                    <template if:true={isNew}>
+                        <div class="target-head-inner">
+                            <lightning-input type="checkbox" variant="label-hidden" checked={allSelected}
+                                onchange={handleSelectAll}></lightning-input>
+                            <lightning-icon icon-name="standard:dataset" size="x-small"
+                                alternative-text="Shelfwatch Object"></lightning-icon>
+                            Shelfwatch Fields
+                            <span class="select-all-hint">Select All</span>
+                        </div>
+                    </template>
+                    <template if:false={isNew}>
+                        <div class="target-head-inner">
+                            <lightning-input type="checkbox" variant="label-hidden" checked={allMappedAsCustom}
+                                onchange={handleMapAllCustom}>
+                            </lightning-input>
+                            <lightning-icon icon-name="standard:dataset" size="x-small"
+                                alternative-text="Shelfwatch Object"></lightning-icon>
+                            Shelfwatch Fields
+                            <span class="select-all-hint">Map All as Custom</span>
+                        </div>
+                    </template>
+                </div>
+
+            </div>
+
+            <!-- Mapping Rows -->
+            <div class="mapping-table__body">
+                <template for:each={mappingRows} for:item="row">
+                    <div key={row.sourceApi} class="mapping-row">
+
+                        <!-- Source Field -->
+                        <div class="mapping-row__source">
+                            <span class="field-pill field-pill--source">
+                                <span class="field-pill__name">{row.sourceLabel}</span>
+                            <template if:true={row.required}>
+                                <span class="field-pill__req" title="Required">*</span>
+                            </template>
+                            </span>
+                        </div>
+
+                        <!-- Arrow -->
+                        <div class="mapping-row__arrow">
+                            <div class="arrow-line"></div>
+                            <lightning-icon icon-name="utility:forward" size="x-small" alternative-text="maps to">
+                            </lightning-icon>
+                        </div>
+
+                        <!-- Target Field -->
+                        <div class="mapping-row__target">
+                            <template if:false={isNew}>
+                                <div class="combobox-wrapper">
+                                    <lightning-combobox label="" data-source={row.sourceApi} value={row.target}
+                                        options={targetOptions} onchange={handleMapping}></lightning-combobox>
+                                </div>
+                            </template>
+
+                            <template if:true={isNew}>
+                                <div class="checkbox-wrapper">
+                                    <lightning-input type="checkbox" variant="label-hidden" data-source={row.sourceApi}
+                                        checked={row.include} onchange={handleInclude}></lightning-input>
+                                    <span class="include-label">Include field</span>
+                                </div>
+                            </template>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mapping-footer">
+            <template if:false={hideBack}>
+                <lightning-button label="Back" onclick={handleBack}></lightning-button>
+            </template>
+            <template if:true={hideBack}>
+                <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+            </template>
+            <lightning-button variant="brand" label="Next" onclick={handleNext}></lightning-button>
+        </div>
+
+    </lightning-card>
+</template>
