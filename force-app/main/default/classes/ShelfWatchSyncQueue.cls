@@ -41,44 +41,109 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
     }
     
     private void updateSyncedCounter(Boolean apiSuccess) {
-        if (!apiSuccess) return;
-        try {
-            ParallelDots__Shelfwatch_Mapping__c rec = [
-                SELECT Id, ParallelDots__Total_Synced_Records__c,ParallelDots__Sync_Status__c,ParallelDots__Total_Processed_Records__c
-                FROM   ParallelDots__Shelfwatch_Mapping__c
-                WHERE  Id = :recordId
-                LIMIT  1
-                FOR UPDATE
-            ];
-            Integer existingCount = rec.ParallelDots__Total_Synced_Records__c == null
-                ? 0
-                : Integer.valueOf(rec.ParallelDots__Total_Synced_Records__c);
-            
-            rec.ParallelDots__Total_Synced_Records__c = existingCount + recordCount;
-            
-            Integer processed = rec.ParallelDots__Total_Processed_Records__c != null
-                ? Integer.valueOf(rec.ParallelDots__Total_Processed_Records__c) : 0;
-            Integer synced    = Integer.valueOf(rec.ParallelDots__Total_Synced_Records__c);
-            
-            if (processed > 0 && synced == processed) {
-                rec.ParallelDots__Sync_Status__c = 'Success';
-            }
-            update rec;
-            
-            if (syncLogId != null) {
-                List<ParallelDots__Shelfwatch_Sync_Log__c> logs = [
-                    SELECT Id, ParallelDots__Total_Synced__c
-                    FROM   ParallelDots__Shelfwatch_Sync_Log__c
-                    WHERE  Id = :syncLogId
-                    LIMIT 1
+        System.debug('apiSuccess: ' + apiSuccess + ' | recordId: ' + recordId + ' | recordCount: ' + recordCount);
+
+        if (apiSuccess) {
+            try {
+                ParallelDots__Shelfwatch_Mapping__c rec = [
+                    SELECT Id,
+                        ParallelDots__Total_Synced_Records__c,
+                        ParallelDots__Total_Processed_Records__c
+                    FROM   ParallelDots__Shelfwatch_Mapping__c
+                    WHERE  Id = :recordId
+                    LIMIT  1
+                    FOR UPDATE
                 ];
-                if (!logs.isEmpty()) {
-                    logs[0].ParallelDots__Total_Synced__c = (logs[0].ParallelDots__Total_Synced__c ?? 0) + recordCount;
-                    update logs[0];
+
+                Integer existingCount = rec.ParallelDots__Total_Synced_Records__c == null
+                    ? 0 : Integer.valueOf(rec.ParallelDots__Total_Synced_Records__c);
+
+                Integer newSynced = existingCount + recordCount;
+                rec.ParallelDots__Total_Synced_Records__c = newSynced;
+
+                Integer processed = rec.ParallelDots__Total_Processed_Records__c != null
+                    ? Integer.valueOf(rec.ParallelDots__Total_Processed_Records__c) : 0;
+
+                if (processed > 0 && newSynced >= processed) {
+                    rec.ParallelDots__Sync_Status__c = 'Completed';
+                }
+
+                update rec;
+                System.debug('Synced counter updated to: ' + newSynced);
+
+            } catch (Exception e) {
+                System.debug('Failed to update mapping synced counter: ' + e.getMessage() + ' line: ' + e.getLineNumber());
+            }
+
+            if (syncLogId != null) {
+                try {
+                    List<ParallelDots__Shelfwatch_Sync_Log__c> logs = [
+                        SELECT Id, ParallelDots__Total_Synced__c
+                        FROM   ParallelDots__Shelfwatch_Sync_Log__c
+                        WHERE  Id = :syncLogId
+                        LIMIT  1
+                        FOR UPDATE
+                    ];
+                    if (!logs.isEmpty()) {
+                        Integer existingLogCount = logs[0].ParallelDots__Total_Synced__c == null
+                            ? 0 : Integer.valueOf(logs[0].ParallelDots__Total_Synced__c);
+                        logs[0].ParallelDots__Total_Synced__c = existingLogCount + recordCount;
+                        update logs[0];
+                        System.debug('Sync log counter updated to: ' + logs[0].ParallelDots__Total_Synced__c);
+                    }
+                } catch (Exception e) {
+                    System.debug('Failed to update sync log counter: ' + e.getMessage() + ' line: ' + e.getLineNumber());
                 }
             }
-        } catch (Exception e) {
-            System.debug('Failed to update synced counter: ' + e.getMessage());
+
+        } else {
+            System.debug('API call failed — updating status to Failed on mapping and sync log');
+
+            try {
+                ParallelDots__Shelfwatch_Mapping__c rec = [
+                    SELECT Id,
+                        ParallelDots__Total_Synced_Records__c,
+                        ParallelDots__Total_Processed_Records__c,
+                        ParallelDots__Sync_Status__c
+                    FROM   ParallelDots__Shelfwatch_Mapping__c
+                    WHERE  Id = :recordId
+                    LIMIT  1
+                    FOR UPDATE
+                ];
+
+                Integer synced = rec.ParallelDots__Total_Synced_Records__c != null
+                    ? Integer.valueOf(rec.ParallelDots__Total_Synced_Records__c) : 0;
+
+                String failStatus = synced > 0 ? 'Partial Success' : 'Failed';
+                rec.ParallelDots__Sync_Status__c = failStatus;
+
+                update rec;
+                System.debug('Mapping status set to: ' + failStatus);
+
+            } catch (Exception e) {
+                System.debug('Failed to update mapping failure status: ' + e.getMessage() + ' line: ' + e.getLineNumber());
+            }
+
+            if (syncLogId != null) {
+                try {
+                    List<ParallelDots__Shelfwatch_Sync_Log__c> logs = [
+                        SELECT Id, ParallelDots__Total_Synced__c
+                        FROM   ParallelDots__Shelfwatch_Sync_Log__c
+                        WHERE  Id = :syncLogId
+                        LIMIT  1
+                        FOR UPDATE
+                    ];
+                    if (!logs.isEmpty()) {
+                        logs[0].ParallelDots__Status__c         = 'Failed';
+                        logs[0].ParallelDots__Error_Messages__c = 'API call failed for entity: ' + entity
+                            + '. recordCount: ' + recordCount;
+                        update logs[0];
+                        System.debug('Sync log status set to Failed');
+                    }
+                } catch (Exception e) {
+                    System.debug('Failed to update sync log failure status: ' + e.getMessage() + ' line: ' + e.getLineNumber());
+                }
+            }
         }
     }
 

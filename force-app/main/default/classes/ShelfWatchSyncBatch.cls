@@ -63,7 +63,13 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
             
             ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
 
-            
+            Map<String,Object> fieldMapClone = new Map<String,Object>();
+            for (String externalField : payload.fieldMapping.keySet()) {
+                fieldMapClone.put(externalField , '');
+            }
+
+            payload.fieldMappingClone = fieldMapClone;
+
             Map<String, Object> params = new Map<String, Object>{
                 'query'       => query,
                 'isFirstTime' => isFirstTime,
@@ -77,10 +83,10 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
                      'allMappings'   => mappings,
                      'currentIndex'  => index,
                      'accessToken'   => auth.accessToken,
-                     'syncStartTime' => syncStartTime  
+                     'syncStartTime' => syncStartTime
             };
                                     
-            Id jobId = Database.executeBatch(new ShelfWatchSyncBatch(config), 500); 
+            Id jobId = Database.executeBatch(new ShelfWatchSyncBatch(config), 200); 
             System.debug('Fired batch for mapping [' + mapRec.Id + '] at index: ' + index);
             return jobId; 
             
@@ -150,7 +156,6 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
 
             System.debug(JSON.serializePretty(body));
             String recordId = String.valueOf(params.get('recordId'));
-            //System.enqueueJob(new ShelfWatchSyncQueue(body, payload.entity, recordId, scope.size(), syncLogId , accessToken)); 
             Map<String, Object> queueConfig = new Map<String, Object>{
                     'body'        => body,
                     'entity'      => payload.entity,
@@ -201,10 +206,14 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
             
             if (errorMessages.isEmpty()) {
                 mappingUpdate.ParallelDots__Last_Sync_Time__c = this.syncStartTime;
-            }
-            
-            if (retryFromId != null) {
-                mappingUpdate.ParallelDots__Retry_From_Id__c = retryFromId;
+                mappingUpdate.ParallelDots__Sync_Status__c    = 'Success';  
+                mappingUpdate.ParallelDots__Retry_From_Id__c  = null;         
+            } else {
+                if (retryFromId != null) {
+                    mappingUpdate.ParallelDots__Retry_From_Id__c = retryFromId;
+                }
+                String finalStatus = totalRecordsProcessed == 0 ? 'Failed' : 'Partial Success';
+                    mappingUpdate.ParallelDots__Sync_Status__c = finalStatus;
             }
             
             update mappingUpdate;
@@ -224,33 +233,6 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
                 );
             } catch (Exception e) {
                 System.debug('Failed to update sync log: ' + e.getMessage());
-            }
-        }
-        
-        if (!errorMessages.isEmpty()) {
-            try {
-                ParallelDots__Shelfwatch_Mapping__c current = [
-                    SELECT ParallelDots__Total_Synced_Records__c
-                    FROM   ParallelDots__Shelfwatch_Mapping__c
-                    WHERE  Id = :recordId
-                    LIMIT  1
-                ];
-                
-                Integer synced = current.ParallelDots__Total_Synced_Records__c != null
-                    ? Integer.valueOf(current.ParallelDots__Total_Synced_Records__c) : 0;
-                
-                String finalStatus = synced == 0 ? 'Failed'
-                    : synced == totalRecordsProcessed ? 'Success'
-                        : 'In Progress';
-                
-                update new ParallelDots__Shelfwatch_Mapping__c(
-                    Id                           = recordId,
-                    ParallelDots__Sync_Status__c = finalStatus
-                );
-                
-                
-            } catch (Exception e) {
-                System.debug('Failed to update final sync status: ' + e.getMessage());
             }
         }
         

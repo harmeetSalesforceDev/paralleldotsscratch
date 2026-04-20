@@ -7,6 +7,9 @@ public with sharing class ShelfWatchApiService {
         /** * @description  Map<String, String> fieldMapping defined  */
         @AuraEnabled
         public Map<String, String> fieldMapping{get;set;}
+        /** * @description  Map<String, String> fieldMapping defined  */
+        @AuraEnabled
+        public Map<String, Object> fieldMappingClone{get;set;}
        /** * @description List<String> entityFields defined  */
        @AuraEnabled
         public List<String> entityFields{get;set;}
@@ -70,33 +73,43 @@ public with sharing class ShelfWatchApiService {
         String timeStamp     = currentTime.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
         For(SObject rec : payload.records) {
             Map<String, Object> recordMap = new Map<String, Object>();
-            Map<String, Object> metadata  = new Map<String, Object>();
-            for (String externalField : payload.fieldMapping.keySet()) {
-                String sfField = payload.fieldMapping.get(externalField);
-                String value = '';
-                try {
-                    value = (rec.get(sfField) == null) ? '' : String.valueOf(rec.get(sfField));
-                } 
-                catch (Exception e) {
-                    System.debug('Skipping fields : ' + sfField + ' | ' + e.getMessage());
-                    continue;
-                }
-                
-                if (payload.entityFields.contains(externalField)) {
-                    recordMap.put(externalField, value);
-                } else {
-                    metadata.put(externalField, value);
-                }
+            String jsonStr = JSON.serialize(rec);
+            Map<String, Object> sObjData = (Map<String, Object>) JSON.deserializeUntyped(jsonStr);
+            Map<String, Object> metadata = payload.fieldMappingClone;
+            metadata.putAll(sObjData);
+            metadata.remove('Id');
+            metadata.remove('IsDeleted');
+            if(payload.entity != 'custom'){
+                Map<String, Object> ingestData = addRequiredFields(metadata , payload.entityFields , payload.fieldMapping);
+                Map<String, Object> newMetadata = (Map<String, Object>) ingestData.get('newMetadata');
+                recordMap = (Map<String, Object>) ingestData.get('requiredFieldData');
+                metadata = newMetadata;
             }
-        recordMap.put('external_id_field' , 'Id');
-        recordMap.put('Id' , rec.get('Id'));
-        recordMap.put('IsDeleted' , rec.get('IsDeleted'));
-        metadata.put('timeStamp' , timeStamp);
-        recordMap.put('metadata', metadata);
-        outputList.add(recordMap);
+            recordMap.put('external_id_field' , 'Id');
+            recordMap.put('Id' , rec.get('Id'));
+            recordMap.put('IsDeleted' , rec.get('IsDeleted'));
+            metadata.put('timeStamp' , timeStamp);
+            recordMap.put('metadata', metadata);
+            outputList.add(recordMap);
         }
         return outputList;
     }
+
+    public static Map<String, Object> addRequiredFields(Map<String, Object> metadata , List<String> entityFields , Map<String ,String> fieldMapping) {
+        Map<String, Object> recordMap = new Map<String, Object>();
+        For(String field : entityFields){
+            if(fieldMapping.containsKey(field)){
+                String mapfield = fieldMapping.get(field);
+                recordMap.put(field , metadata.get(mapfield));
+                metadata.remove(field);
+            }
+        }
+        Map<String,Object> filteredMap = new Map<String,Object>();
+        filteredMap.put('newMetadata' , metadata);
+        filteredMap.put('requiredFieldData' , recordMap);
+        return filteredMap;
+    }
+
     /**
      * @description Method to get the schema discovery fields for the entity
      * @param entity String
