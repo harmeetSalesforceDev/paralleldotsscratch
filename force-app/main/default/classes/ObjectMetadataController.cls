@@ -152,4 +152,32 @@ public with sharing class ObjectMetadataController {
         ];
         return !existing.isEmpty();
     }
+
+    @AuraEnabled(cacheable=true)
+    public static List<Map<String, String>> getShelfObjectOptions() {
+        Map<String, Object> apiRes = ShelfWatchApiService.getShelfObjectTypes();
+        List<Map<String, String>> options = new List<Map<String, String>>();
+        if ((Boolean) apiRes.get('isAuthorize')) {
+            Map<String, Object> resultMap = (Map<String, Object>) apiRes.get('result');
+            List<Object> objs = (List<Object>) resultMap.get('object_types');
+            for (Object obj : objs) {
+                String value = String.valueOf(obj);
+                options.add(new Map<String, String>{
+                    'label' => formatLabel(value),
+                    'value' => value
+                });
+            }
+        } else {
+            throw new AuraHandledException((String) apiRes.get('error'));
+        }
+        return options;
+    }
+
+    private static String formatLabel(String apiName) {
+        List<String> parts = apiName.split('_');
+        for (Integer i = 0; i < parts.size(); i++) {
+            parts[i] = parts[i].substring(0,1).toUpperCase() + parts[i].substring(1);
+        }
+        return String.join(parts, ' ');
+    }
 }

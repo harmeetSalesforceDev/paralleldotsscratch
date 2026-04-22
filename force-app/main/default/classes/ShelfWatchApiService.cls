@@ -182,6 +182,37 @@ public with sharing class ShelfWatchApiService {
     return responseObj;
     }
 
+    public static Map<String, Object> getShelfObjectTypes() {
 
+        ParallelDots__ShelfWatch_Credentials__c shelfCred = ParallelDots__ShelfWatch_Credentials__c.getInstance('AuthCredentials');
+        Http http = new Http();
+        HttpRequest req = new HttpRequest();
+        ShelfWatchAuthService.AuthResponse auth           = ShelfWatchAuthService.getAccessToken();
+        Map<String,Object> responseObj                    = new Map<String,Object>();
+        responseObj.put('isAuthorize' , false);
+        if(!auth.isAuthorize){
+            responseObj.put('errorMessage' , auth.error + ' ' + auth.message);
+            return responseObj;
+        }
+        req.setEndpoint('callout:ShelfWatch_API/v1/ingest/object-types');
+        req.setMethod('GET');
+
+        req.setHeader('Content-Type', 'application/json');
+        req.setHeader('Authorization', 'Bearer ' + auth.accessToken);
+        req.setHeader('X-Org-Id', shelfCred.ParallelDots__Org_Id__c);
+        req.setHeader('X-Project-Id', shelfCred.ParallelDots__Project_Id__c);
+
+        HttpResponse response = http.send(req);
+        Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
+        if (response.getStatusCode() == 200) {
+            System.debug(JSON.serializePretty(response.getBody()));
+            responseObj.put('isAuthorize' , true);
+            responseObj.put('result' , result);
+        } else {
+             responseObj.put('errorMessage' , response.getStatusCode() + ' ' + (String)result.get('message'));
+        }
+        System.debug(responseObj);
+        return responseObj;
+    }
 
 }

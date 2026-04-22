@@ -1,4 +1,4 @@
-global class ShelfwatchScheduler implements Schedulable {
+global class ShelfwatchScheduler implements Schedulable, Database.AllowsCallouts {
     global void execute(SchedulableContext sc) {
         try {
             List<ParallelDots__Shelfwatch_Mapping__c> mappings = [
@@ -8,7 +8,8 @@ global class ShelfwatchScheduler implements Schedulable {
                        ParallelDots__Mapping_JSON__c,
                        ParallelDots__Required_Fields__c,
                        ParallelDots__Salesforce_Fields__c,
-                       ParallelDots__Last_Sync_Time__c
+                       ParallelDots__Last_Sync_Time__c,
+                       ParallelDots__First_Time_Mapping__c
                 FROM   ParallelDots__Shelfwatch_Mapping__c
                 WHERE  ParallelDots__Is_Auto_Active__c = true
                 WITH   SECURITY_ENFORCED

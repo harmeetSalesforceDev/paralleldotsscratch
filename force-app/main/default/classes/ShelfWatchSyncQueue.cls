@@ -65,11 +65,10 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
                     ? Integer.valueOf(rec.ParallelDots__Total_Processed_Records__c) : 0;
 
                 if (processed > 0 && newSynced >= processed) {
-                    rec.ParallelDots__Sync_Status__c = 'Completed';
+                    rec.ParallelDots__Sync_Status__c = 'Success';
                 }
 
                 update rec;
-                System.debug('Synced counter updated to: ' + newSynced);
 
             } catch (Exception e) {
                 System.debug('Failed to update mapping synced counter: ' + e.getMessage() + ' line: ' + e.getLineNumber());
@@ -89,7 +88,6 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
                             ? 0 : Integer.valueOf(logs[0].ParallelDots__Total_Synced__c);
                         logs[0].ParallelDots__Total_Synced__c = existingLogCount + recordCount;
                         update logs[0];
-                        System.debug('Sync log counter updated to: ' + logs[0].ParallelDots__Total_Synced__c);
                     }
                 } catch (Exception e) {
                     System.debug('Failed to update sync log counter: ' + e.getMessage() + ' line: ' + e.getLineNumber());
@@ -97,7 +95,6 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
             }
 
         } else {
-            System.debug('API call failed — updating status to Failed on mapping and sync log');
 
             try {
                 ParallelDots__Shelfwatch_Mapping__c rec = [
@@ -118,7 +115,6 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
                 rec.ParallelDots__Sync_Status__c = failStatus;
 
                 update rec;
-                System.debug('Mapping status set to: ' + failStatus);
 
             } catch (Exception e) {
                 System.debug('Failed to update mapping failure status: ' + e.getMessage() + ' line: ' + e.getLineNumber());
@@ -138,7 +134,6 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
                         logs[0].ParallelDots__Error_Messages__c = 'API call failed for entity: ' + entity
                             + '. recordCount: ' + recordCount;
                         update logs[0];
-                        System.debug('Sync log status set to Failed');
                     }
                 } catch (Exception e) {
                     System.debug('Failed to update sync log failure status: ' + e.getMessage() + ' line: ' + e.getLineNumber());

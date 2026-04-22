@@ -79,6 +79,7 @@ export default class EditMappingTab extends LightningElement {
         if (!this.shelfResult) {
             return;
         }
+         console.log('shelfResult (edit flow):', JSON.stringify(this.shelfResult, null, 2));
         const props =
             this.shelfResult?.schema?.properties?.records?.items?.properties || {};
         const required =

@@ -3,6 +3,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import checkMappingExists from '@salesforce/apex/ObjectMetadataController.checkMappingExists';
 import getAllObjects from '@salesforce/apex/ObjectMetadataController.getAllObjects';
 import getShelfFields from '@salesforce/apex/ObjectMetadataController.getShelfFields';
+import getShelfObjectOptions from '@salesforce/apex/ObjectMetadataController.getShelfObjectOptions';
 export default class SelectObjectTab extends LightningElement {
 
     @api selectedObj1;
@@ -12,13 +13,16 @@ export default class SelectObjectTab extends LightningElement {
     @api selectedObj2Label;
 
     @track objectOptions = [];
-    @track shelfobjectOptions = [
-        { label: 'User', value: 'users' },
-        { label: 'Stores', value: 'stores' },
-        { label: 'Route Plan', value: 'route_plan' },
-        { label: 'Assortment List', value: 'assortment_list' },
-        { label: 'Sku Master', value: 'sku_master' }
-    ];
+    @track shelfobjectOptions = [];
+
+    @wire(getShelfObjectOptions)
+    wiredShelfObjects({ data, error }) {
+        if (data) {
+            this.shelfobjectOptions = data;
+        } else if (error) {
+            this.showError(error.body?.message || 'Failed to load shelf objects');
+        }
+    }
 
     @track searchTerm = '';
     @track showList = false;
