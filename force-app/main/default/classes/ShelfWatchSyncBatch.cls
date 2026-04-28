@@ -8,7 +8,6 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
     private Integer totalBatchesSucceeded = 0;
     private Integer totalBatchesFailed    = 0;
     private List<String> errorMessages    = new List<String>();
-    private String accessToken            = '';
 
     // Chain control
     private List<ParallelDots__Shelfwatch_Mapping__c> allMappings;
@@ -22,7 +21,6 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
         this.payload      = (ShelfWatchApiService.PayloadAttributes) config.get('payload');
         this.allMappings  = (List<ParallelDots__Shelfwatch_Mapping__c>) config.get('allMappings');
         this.currentIndex = (Integer) config.get('currentIndex');
-        this.accessToken  = (String) config.get('accessToken');
         this.syncStartTime = config.containsKey('syncStartTime')
                             ? (DateTime) config.get('syncStartTime')
                             : System.now();
@@ -48,8 +46,10 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
                 : new List<String>();
             payload.records       = new List<SObject>();
             payload.saveSyncTime  = true;
+            payload.isFirstTime   = mapRec.ParallelDots__First_Time_Mapping__c;
             
-            Boolean isFirstTime = (mapRec.ParallelDots__First_Time_Mapping__c == true);
+            Boolean isFirstTime = (mapRec.ParallelDots__First_Time_Mapping__c == true) || mapRec.ParallelDots__Last_Sync_Time__c == null;
+
             String query = 'SELECT IsDeleted, ' + String.join(payload.fieldMapping.values(), ', ')
                 + ' FROM '  + payload.sObjectEntity
                 + (isFirstTime ? '' : ' WHERE LastModifiedDate > '
@@ -61,7 +61,6 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
                  mapRec.ParallelDots__Last_Sync_Time__c.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\''))
             );
             
-            ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
 
             Map<String,Object> fieldMapClone = new Map<String,Object>();
             for (String externalField : payload.fieldMapping.keySet()) {
@@ -82,7 +81,6 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
                      'payload'       => payload,
                      'allMappings'   => mappings,
                      'currentIndex'  => index,
-                     'accessToken'   => auth.accessToken,
                      'syncStartTime' => syncStartTime
             };
                                     
@@ -109,7 +107,6 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
         
         try {
             ParallelDots__Shelfwatch_Sync_Log__c log = new ParallelDots__Shelfwatch_Sync_Log__c(
-                //Name                                = 'Sync ' + (existingCount + 1),
                 ParallelDots__Shelfwatch_Mapping__c = String.valueOf(params.get('recordId')),
                 ParallelDots__Status__c             = 'In Progress',
                 ParallelDots__Start_Time__c         = this.syncStartTime,
@@ -132,7 +129,8 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
                 ParallelDots__Sync_Status__c             = 'In Progress',
                 ParallelDots__Total_Synced_Records__c    = null,
                 ParallelDots__Total_Processed_Records__c = expectedCount,
-                ParallelDots__BatchJobId__c              = bc.getJobId()
+                ParallelDots__BatchJobId__c              = bc.getJobId(),
+                ParallelDots__API_Fail__c                = false
             );
         } catch (Exception e) {
             System.debug('Failed to set In Progress status: ' + e.getMessage());
@@ -148,21 +146,21 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
             Map<String, Object> body = new Map<String, Object>{
                 'object_type'       => (payload.entity == 'custom') ? payload.sObjectEntity : payload.entity, 
                 'source'            => 'salesforce',
-                'external_id_field' => 'Id'
+                'external_id_field' => 'Id',
+                'insert_only'       => payload.isFirstTime
             };
 
             List<Map<String, Object>> dataPayload = ShelfWatchApiService.buildDynamicPayload(payload);
             body.put('records', dataPayload);
 
-            System.debug(JSON.serializePretty(body));
+            //System.debug(JSON.serializePretty(body));
             String recordId = String.valueOf(params.get('recordId'));
             Map<String, Object> queueConfig = new Map<String, Object>{
                     'body'        => body,
                     'entity'      => payload.entity,
                     'recordId'    => recordId,
                     'recordCount' => scope.size(),
-                    'syncLogId'   => syncLogId,
-                    'accessToken' => accessToken
+                    'syncLogId'   => syncLogId
             };
             System.enqueueJob(new ShelfWatchSyncQueue(queueConfig));
             totalRecordsProcessed += scope.size();
@@ -204,10 +202,19 @@ public class ShelfWatchSyncBatch implements Database.Batchable<SObject>, Databas
                 ParallelDots__First_Time_Mapping__c      = false
             );
             
-            if (errorMessages.isEmpty()) {
+            ParallelDots__Shelfwatch_Mapping__c currentRec = [
+                SELECT ParallelDots__API_Fail__c
+                FROM   ParallelDots__Shelfwatch_Mapping__c
+                WHERE  Id = :recordId LIMIT 1
+            ];
+            Boolean apiFailed = currentRec.ParallelDots__API_Fail__c == true;
+
+            if (errorMessages.isEmpty() && !apiFailed) {
                 mappingUpdate.ParallelDots__Last_Sync_Time__c = this.syncStartTime;
-                mappingUpdate.ParallelDots__Sync_Status__c    = 'Success';  
-                mappingUpdate.ParallelDots__Retry_From_Id__c  = null;         
+                mappingUpdate.ParallelDots__Sync_Status__c    = 'Success';
+                mappingUpdate.ParallelDots__Retry_From_Id__c  = null;
+            } else if (apiFailed) {
+                mappingUpdate.ParallelDots__Sync_Status__c = 'Failed';
             } else {
                 if (retryFromId != null) {
                     mappingUpdate.ParallelDots__Retry_From_Id__c = retryFromId;

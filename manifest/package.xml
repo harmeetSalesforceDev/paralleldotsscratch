@@ -1,32 +1,110 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>*</members>
+        <members>AudienceSyncTableController</members>
+        <members>AudienceSyncTableControllerTest</members>
+        <members>ObjectMetadataController</members>
+        <members>ScheduleAuthService</members>
+        <members>ShelfWatchApiService</members>
+        <members>ShelfWatchApiServiceTest</members>
+        <members>ShelfWatchAuthException</members>
+        <members>ShelfWatchAuthService</members>
+        <members>ShelfWatchAuthServiceTest</members>
+        <members>ShelfWatchSyncBatch</members>
+        <members>ShelfWatchSyncBatchTest</members>
+        <members>ShelfWatchSyncQueue</members>
+        <members>ShelfWatchSyncQueueTest</members>
+        <members>ShelfwatchAuthRefreshQueue</members>
+        <members>ShelfwatchScheduler</members>
+        <members>ShelfwatchSchedulerTest</members>
+        <members>SyncMonitorController</members>
+        <members>Utility</members>
         <name>ApexClass</name>
     </types>
     <types>
-        <members>*</members>
-        <name>ApexComponent</name>
+        <members>Parallel_Dots</members>
+        <name>CustomApplication</name>
     </types>
     <types>
-        <members>*</members>
-        <name>ApexPage</name>
+        <members>ShelfWatch_Credentials__c.Client_Id__c</members>
+        <members>ShelfWatch_Credentials__c.Client_Secret__c</members>
+        <members>ShelfWatch_Credentials__c.Org_Id__c</members>
+        <members>ShelfWatch_Credentials__c.Project_Id__c</members>
+        <members>ShelfWatch_Credentials__c.Refresh_Token__c</members>
+        <members>Shelfwatch_Mapping__c.BatchJobId__c</members>
+        <members>Shelfwatch_Mapping__c.First_Time_Mapping__c</members>
+        <members>Shelfwatch_Mapping__c.Is_Auto_Active__c</members>
+        <members>Shelfwatch_Mapping__c.Last_Sync_Time__c</members>
+        <members>Shelfwatch_Mapping__c.Mapping_JSON__c</members>
+        <members>Shelfwatch_Mapping__c.Required_Fields__c</members>
+        <members>Shelfwatch_Mapping__c.Retry_From_Id__c</members>
+        <members>Shelfwatch_Mapping__c.Salesforce_Fields__c</members>
+        <members>Shelfwatch_Mapping__c.Salesforce_Object__c</members>
+        <members>Shelfwatch_Mapping__c.Shelfwatch_Object__c</members>
+        <members>Shelfwatch_Mapping__c.Sync_Status__c</members>
+        <members>Shelfwatch_Mapping__c.Total_Processed_Records__c</members>
+        <members>Shelfwatch_Mapping__c.Total_Synced_Records__c</members>
+        <members>Shelfwatch_Mapping__c.Unmapped_Fields__c</members>
+        <members>Shelfwatch_Sync_Log__c.Batch_Job_ID__c</members>
+        <members>Shelfwatch_Sync_Log__c.End_Time__c</members>
+        <members>Shelfwatch_Sync_Log__c.Error_Messages__c</members>
+        <members>Shelfwatch_Sync_Log__c.Shelfwatch_Mapping__c</members>
+        <members>Shelfwatch_Sync_Log__c.Start_Time__c</members>
+        <members>Shelfwatch_Sync_Log__c.Status__c</members>
+        <members>Shelfwatch_Sync_Log__c.Total_Processed__c</members>
+        <members>Shelfwatch_Sync_Log__c.Total_Synced__c</members>
+        <name>CustomField</name>
     </types>
     <types>
-        <members>*</members>
-        <name>ApexTestSuite</name>
+        <members>ShelfWatch_Credentials__c</members>
+        <members>Shelfwatch_Mapping__c</members>
+        <members>Shelfwatch_Sync_Log__c</members>
+        <name>CustomObject</name>
     </types>
     <types>
-        <members>*</members>
-        <name>ApexTrigger</name>
+        <members>Configuration_Page</members>
+        <members>Entity_Sync_Status</members>
+        <members>Export_Wizard</members>
+        <members>Shelfwatch_Mapping__c</members>
+        <members>Shelfwatch_Sync_Log__c</members>
+        <members>Sync_Logs</members>
+        <name>CustomTab</name>
     </types>
     <types>
-        <members>*</members>
-        <name>AuraDefinitionBundle</name>
+        <members>Parallel_External</members>
+        <name>ExternalCredential</name>
     </types>
     <types>
-        <members>*</members>
+        <members>Configuration_Page</members>
+        <members>Entity_Sync_Status</members>
+        <members>Export_Wizard</members>
+        <members>Parallel_Dots_UtilityBar</members>
+        <members>Sync_Logs</members>
+        <name>FlexiPage</name>
+    </types>
+    <types>
+        <members>Shelfwatch_Mapping__c-Shelfwatch Mapping Layout</members>
+        <members>Shelfwatch_Sync_Log__c-Shelfwatch Sync Log Layout</members>
+        <name>Layout</name>
+    </types>
+    <types>
+        <members>configurationPage</members>
+        <members>editMappingTab</members>
+        <members>entitySyncStatus</members>
+        <members>selectObjectTab</members>
+        <members>selectWizard</members>
+        <members>startImportTab</members>
+        <members>syncMonitorTab</members>
+        <members>utility</members>
         <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>NamedCredential</name>
+    </types>
+    <types>
+        <members>External_Credential_Access</members>
+        <name>PermissionSet</name>
     </types>
     <types>
         <members>*</members>

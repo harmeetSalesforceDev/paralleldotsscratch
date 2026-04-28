@@ -6,6 +6,7 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
     private String recordId;     
     private Integer recordCount;
     private Id syncLogId;
+    private Integer retryAttempts = 0;
     private String accessToken;
     /** * @description ShelfWatchSyncQueue constructor defined  */
     /*public ShelfWatchSyncQueue(Map<String, Object> body , String entity, String recordId, Integer recordCount, Id syncLogId , String accessToken) {
@@ -25,7 +26,7 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
         this.recordId    = (String) config.get('recordId');
         this.recordCount = (Integer) config.get('recordCount');
         this.syncLogId   = (Id) config.get('syncLogId');
-        this.accessToken = (String) config.get('accessToken');
+        //this.accessToken = (String) config.get('accessToken');
     }
     public void execute(QueueableContext context) {
         Boolean apiSuccess = false;
@@ -120,25 +121,6 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
                 System.debug('Failed to update mapping failure status: ' + e.getMessage() + ' line: ' + e.getLineNumber());
             }
 
-            if (syncLogId != null) {
-                try {
-                    List<ParallelDots__Shelfwatch_Sync_Log__c> logs = [
-                        SELECT Id, ParallelDots__Total_Synced__c
-                        FROM   ParallelDots__Shelfwatch_Sync_Log__c
-                        WHERE  Id = :syncLogId
-                        LIMIT  1
-                        FOR UPDATE
-                    ];
-                    if (!logs.isEmpty()) {
-                        logs[0].ParallelDots__Status__c         = 'Failed';
-                        logs[0].ParallelDots__Error_Messages__c = 'API call failed for entity: ' + entity
-                            + '. recordCount: ' + recordCount;
-                        update logs[0];
-                    }
-                } catch (Exception e) {
-                    System.debug('Failed to update sync log failure status: ' + e.getMessage() + ' line: ' + e.getLineNumber());
-                }
-            }
         }
     }
 
@@ -153,6 +135,15 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
         Http http                                         = new Http();
         HttpRequest request                               = new HttpRequest();
         Map<String,Object> responseObj                    = new Map<String,Object>();
+
+        String accessToken  = String.isNotBlank(this.accessToken) 
+                                ? this.accessToken 
+                                : shelfCred?.ParallelDots__Access_Token__c;
+        if(String.isBlank(accessToken)){
+            responseObj.put('errorMessage', 'Access token not found. Please re-authenticate.');
+            return responseObj;
+        }
+
         responseObj.put('isAuthorize' , false);
         request.setEndpoint('callout:ShelfWatch_API/v1/ingest/' + entity);
         request.setMethod('POST');
@@ -163,12 +154,60 @@ public with sharing class ShelfWatchSyncQueue implements Queueable , Database.Al
         request.setTimeout(120000);
         request.setBody(body);
         HttpResponse response = http.send(request);
+        String responseBody = response.getBody();
+        System.debug('Response Status: ' + response.getStatusCode());
+        System.debug('Response Body: ' + responseBody); 
         Map<String, Object> result = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+
+        if (response.getStatusCode() == 401) {
+            if (retryAttempts >= 3) {                                          
+                responseObj.put('errorMessage', 'Max retry attempts reached.');
+                return responseObj;
+            }
+            ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
+            if (!auth.isAuthorize) {
+                responseObj.put('errorMessage', auth.error + ' ' + auth.message);
+                return responseObj;
+            }
+            this.accessToken = auth.accessToken;
+            retryAttempts++;   
+            Map<String,Object> retryResponse = callIngestData(body, entity);                                   
+            shelfCred.ParallelDots__Access_Token__c = auth.accessToken;       
+            update shelfCred;
+            return retryResponse;
+        }
+
         if (response.getStatusCode() == 202) {
             System.debug(JSON.serializePretty(response.getBody()));
             responseObj.put('isAuthorize' , true);
             responseObj.put('result' , result);
         } else {
+            ParallelDots__Shelfwatch_Mapping__c rec = [
+                    SELECT Id,
+                        ParallelDots__Total_Synced_Records__c,
+                        ParallelDots__Total_Processed_Records__c,
+                        ParallelDots__API_Fail__c,
+                        ParallelDots__Sync_Status__c
+                    FROM   ParallelDots__Shelfwatch_Mapping__c
+                    WHERE  Id = :recordId
+                    LIMIT  1
+                    FOR UPDATE
+            ];
+            rec.ParallelDots__API_Fail__c = true;
+            update rec;
+
+            List<ParallelDots__Shelfwatch_Sync_Log__c> logs = [
+                        SELECT Id, ParallelDots__Total_Synced__c, ParallelDots__Status__c, ParallelDots__Error_Messages__c
+                        FROM   ParallelDots__Shelfwatch_Sync_Log__c
+                        WHERE  Id = :syncLogId
+                        LIMIT  1
+                        FOR UPDATE
+                    ];
+            if (!logs.isEmpty()) {
+                logs[0].ParallelDots__Status__c         = 'Failed';
+                logs[0].ParallelDots__Error_Messages__c = response.getBody();
+                update logs[0];
+            }
             responseObj.put('errorMessage' , response.getStatusCode() + ' ' + (String)result.get('message'));
         }
         System.debug(responseObj);

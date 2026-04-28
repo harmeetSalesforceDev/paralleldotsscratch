@@ -1,7 +1,6 @@
 import deleteMapping from '@salesforce/apex/AudienceSyncTableController.deleteMapping';
 import getMappingRecords from '@salesforce/apex/AudienceSyncTableController.getMappingRecords';
 import syncNow from '@salesforce/apex/AudienceSyncTableController.syncNow';
-import verifyAuthentication from '@salesforce/apex/ShelfWatchAuthService.verifyAuthentication';
 import updateAutoSync from '@salesforce/apex/AudienceSyncTableController.updateAutoSync';
 import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
@@ -16,7 +15,6 @@ export default class EntitySyncStatus extends NavigationMixin(LightningElement) 
         { key: 'lastSync', label: 'Last Sync' },
         { key: 'syncStatus', label: 'Sync Status' },
         { key: 'syncNow', label: 'Sync Now' },
-        { key: 'retry', label: 'Retry' },
         { key: 'autoSync', label: 'Auto Sync' },
         { key: 'edit', label: 'Edit' },
         { key: 'delete', label: 'Delete' }
@@ -27,25 +25,8 @@ export default class EntitySyncStatus extends NavigationMixin(LightningElement) 
     error;
     @track showDeleteModal = false;
 
-    @track isAuthorized = false;
-    @track isLoading = true;
-    @track authChecked = false;
     pollingIntervals = {};
 
-    @wire(verifyAuthentication)
-    wiredAuth({ data, error }) {
-        if (data) {
-            this.isAuthorized = data.isAuthorize === true;
-            this.authChecked = true;
-            this.isLoading = false;
-        } else if (error) {
-            this.isAuthorized = false;
-            this.authChecked = true;
-            this.isLoading = false;
-        }
-        //this.authChecked = true;
-        //this.isLoading = false;
-    }
 
     connectedCallback() {
         this.loadRecords();
@@ -102,24 +83,21 @@ export default class EntitySyncStatus extends NavigationMixin(LightningElement) 
     }
 
     startSync(recordId) {
-        this.entities = this.entities.map(row =>
-            row.id === recordId ? { ...row, isSyncing: true } : row
-        );
-
         syncNow({ recordId })
             .then(jobId => {
-                console.log('Batch Job Id: ' + jobId);
                 this.dispatchEvent(new ShowToastEvent({
                     title: 'Success',
                     message: 'Sync started successfully',
                     variant: 'success'
                 }));
+                setTimeout(() => this.loadRecords(), 1500);  // ADD
             })
             .catch(err => {
-                this.error = err?.body?.message || 'Sync failed';
-                this.entities = this.entities.map(row =>
-                    row.id === recordId ? { ...row, isSyncing: false } : row
-                );
+                this.dispatchEvent(new ShowToastEvent({  // ADD toast on error too
+                    title: 'Sync Failed',
+                    message: err?.body?.message || 'Sync could not be started',
+                    variant: 'error'
+                }));
             });
     }
 
@@ -204,11 +182,30 @@ export default class EntitySyncStatus extends NavigationMixin(LightningElement) 
 
     handleRetry(event) {
         const recordId = event.currentTarget.dataset.id;
+        const entity = this.entities.find(row => row.id === recordId);
+        const existingJobId = entity?.batchJobId;
 
-        this.entities = this.entities.map(row =>
-            row.id === recordId ? { ...row, isSyncing: true } : row
-        );
+        // Same validation as Sync Now
+        if (existingJobId) {
+            getJobStatus({ jobId: existingJobId })
+                .then(status => {
+                    if (['Queued', 'Processing', 'Preparing'].includes(status)) {
+                        this.dispatchEvent(new ShowToastEvent({
+                            title: 'Sync In Progress',
+                            message: 'A sync is already running. Please wait for it to complete.',
+                            variant: 'error'
+                        }));
+                    } else {
+                        this.startRetry(recordId);
+                    }
+                })
+                .catch(() => this.startRetry(recordId));
+        } else {
+            this.startRetry(recordId);
+        }
+    }
 
+    startRetry(recordId) {
         retryFailedSync({ recordId })
             .then(() => {
                 this.dispatchEvent(new ShowToastEvent({
@@ -224,22 +221,7 @@ export default class EntitySyncStatus extends NavigationMixin(LightningElement) 
                     message: err?.body?.message || 'Retry could not be started',
                     variant: 'error'
                 }));
-                this.entities = this.entities.map(row =>
-                    row.id === recordId ? { ...row, isSyncing: false } : row
-                );
             });
     }
 
-    get showRetryColumn() {
-        return this.entities.some(row => row.canRetry);
-    }
-
-    get visibleColumns() {
-        return this.columns.filter(col => {
-            if (col.key === 'retry') {
-                return this.showRetryColumn;
-            }
-            return true;
-        });
-    }
 }

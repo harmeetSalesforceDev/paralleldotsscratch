@@ -19,9 +19,10 @@ public with sharing class ShelfWatchApiService {
         /** * @description String entity defined  */
        @AuraEnabled
         public String sObjectEntity{get;set;}
-		
-       @AuraEnabled
+        @AuraEnabled
         public Boolean saveSyncTime{get;set;}
+        @AuraEnabled
+        public Boolean isFirstTime{get;set;}
     }
     /**
      * @description Method to get the schema discovery fields for the entity
@@ -85,8 +86,8 @@ public with sharing class ShelfWatchApiService {
                 recordMap = (Map<String, Object>) ingestData.get('requiredFieldData');
                 metadata = newMetadata;
             }
-            recordMap.put('external_id_field' , 'Id');
             recordMap.put('Id' , rec.get('Id'));
+            //recordMap.put('creation' , rec.get('ContactSource'));
             recordMap.put('IsDeleted' , rec.get('IsDeleted'));
             metadata.put('timeStamp' , timeStamp);
             recordMap.put('metadata', metadata);
@@ -100,7 +101,8 @@ public with sharing class ShelfWatchApiService {
         For(String field : entityFields){
             if(fieldMapping.containsKey(field)){
                 String mapfield = fieldMapping.get(field);
-                recordMap.put(field , metadata.get(mapfield));
+                Object fieldValue = metadata.containsKey(mapfield) ? metadata.get(mapfield) : null;
+                recordMap.put(field, fieldValue != null ? fieldValue : '');
                 metadata.remove(field);
             }
         }
@@ -120,11 +122,15 @@ public with sharing class ShelfWatchApiService {
         ParallelDots__ShelfWatch_Credentials__c shelfCred = ParallelDots__ShelfWatch_Credentials__c.getInstance('AuthCredentials');
         Http http                                         = new Http();
         HttpRequest request                               = new HttpRequest();
-        ShelfWatchAuthService.AuthResponse auth           = ShelfWatchAuthService.getAccessToken();
-        Map<String,Object> responseObj                    = new Map<String,Object>();
+        //ShelfWatchAuthService.AuthResponse auth           = ShelfWatchAuthService.getAccessToken();
+    
+        Map<String,Object> responseObj = new Map<String,Object>();
         responseObj.put('isAuthorize' , false);
-        if(!auth.isAuthorize){
-            responseObj.put('errorMessage' , auth.error + ' ' + auth.message);
+        String newAccessToken = null;
+        Integer retryCount = 0; 
+        String accessToken = shelfCred?.ParallelDots__Access_Token__c;
+        if (String.isBlank(accessToken)) {
+            responseObj.put('errorMessage', 'Access token not found. Please re-authenticate.');
             return responseObj;
         }
         request.setEndpoint('callout:ShelfWatch_API/v1/ingest/schema/' + entity);
@@ -132,8 +138,26 @@ public with sharing class ShelfWatchApiService {
         request.setHeader('Content-Type', 'application/json');
         request.setHeader('X-Org-Id', shelfCred.ParallelDots__Org_Id__c);
         request.setHeader('X-Project-Id', shelfCred.ParallelDots__Project_Id__c);
-        request.setHeader('Authorization', 'Bearer ' + auth.accessToken);
+        request.setHeader('Authorization', 'Bearer ' + accessToken);
         HttpResponse response = http.send(request);
+
+        if (response.getStatusCode() == 401 && retryCount < 3) {
+            retryCount++;                
+            ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
+            if (!auth.isAuthorize) {
+                responseObj.put('errorMessage', auth.error + ' ' + auth.message);
+                return responseObj;
+            }
+            newAccessToken = auth.accessToken;
+            request.setHeader('Authorization', 'Bearer ' + newAccessToken);
+            response = http.send(request); 
+        }
+
+        if (newAccessToken != null) {
+            shelfCred.ParallelDots__Access_Token__c = newAccessToken;
+            update shelfCred;
+        }
+
         Map<String, Object> result = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
         if (response.getStatusCode() == 200) {
             responseObj.put('isAuthorize' , true);
@@ -155,11 +179,14 @@ public with sharing class ShelfWatchApiService {
         ParallelDots__ShelfWatch_Credentials__c shelfCred = ParallelDots__ShelfWatch_Credentials__c.getInstance('AuthCredentials');
         Http http                                         = new Http();
         HttpRequest request                               = new HttpRequest();
-        ShelfWatchAuthService.AuthResponse auth           = ShelfWatchAuthService.getAccessToken();
+        //ShelfWatchAuthService.AuthResponse auth           = ShelfWatchAuthService.getAccessToken();
         Map<String,Object> responseObj                    = new Map<String,Object>();
         responseObj.put('isAuthorize' , false);
-        if(!auth.isAuthorize){
-            responseObj.put('errorMessage' , auth.error + ' ' + auth.message);
+        String newAccessToken = null;
+        Integer retryCount = 0;
+        String accessToken = shelfCred?.ParallelDots__Access_Token__c;
+        if (String.isBlank(accessToken)) {
+            responseObj.put('errorMessage', 'Access token not found. Please re-authenticate.');
             return responseObj;
         }
         request.setEndpoint('callout:ShelfWatch_API/v1/ingest/' + entity);
@@ -167,9 +194,27 @@ public with sharing class ShelfWatchApiService {
         request.setHeader('Content-Type', 'application/json');
         request.setHeader('X-Org-Id', shelfCred.ParallelDots__Org_Id__c);
         request.setHeader('X-Project-Id', shelfCred.ParallelDots__Project_Id__c);
-        request.setHeader('Authorization', 'Bearer ' + auth.accessToken);
+        request.setHeader('Authorization', 'Bearer ' + accessToken);
         request.setBody(body);
         HttpResponse response = http.send(request);
+
+        if (response.getStatusCode() == 401 && retryCount < 3) {
+            retryCount++;                
+            ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
+            if (!auth.isAuthorize) {
+                responseObj.put('errorMessage', auth.error + ' ' + auth.message);
+                return responseObj;
+            }
+            newAccessToken = auth.accessToken;
+            request.setHeader('Authorization', 'Bearer ' + newAccessToken);
+            response = http.send(request); 
+        }
+
+        if (newAccessToken != null) {
+            shelfCred.ParallelDots__Access_Token__c = newAccessToken;
+            update shelfCred;
+        }
+
         Map<String, Object> result = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
         if (response.getStatusCode() == 202) {
             System.debug(JSON.serializePretty(response.getBody()));
@@ -187,22 +232,43 @@ public with sharing class ShelfWatchApiService {
         ParallelDots__ShelfWatch_Credentials__c shelfCred = ParallelDots__ShelfWatch_Credentials__c.getInstance('AuthCredentials');
         Http http = new Http();
         HttpRequest req = new HttpRequest();
-        ShelfWatchAuthService.AuthResponse auth           = ShelfWatchAuthService.getAccessToken();
+        //ShelfWatchAuthService.AuthResponse auth           = ShelfWatchAuthService.getAccessToken();
         Map<String,Object> responseObj                    = new Map<String,Object>();
         responseObj.put('isAuthorize' , false);
-        if(!auth.isAuthorize){
-            responseObj.put('errorMessage' , auth.error + ' ' + auth.message);
+        String newAccessToken = null;
+        Integer retryCount = 0;
+        String accessToken = shelfCred?.ParallelDots__Access_Token__c;
+        if (String.isBlank(accessToken)) {
+            responseObj.put('errorMessage', 'Access token not found. Please re-authenticate.');
             return responseObj;
         }
         req.setEndpoint('callout:ShelfWatch_API/v1/ingest/object-types');
         req.setMethod('GET');
 
         req.setHeader('Content-Type', 'application/json');
-        req.setHeader('Authorization', 'Bearer ' + auth.accessToken);
+        req.setHeader('Authorization', 'Bearer ' + accessToken);
         req.setHeader('X-Org-Id', shelfCred.ParallelDots__Org_Id__c);
         req.setHeader('X-Project-Id', shelfCred.ParallelDots__Project_Id__c);
 
         HttpResponse response = http.send(req);
+
+        if (response.getStatusCode() == 401 && retryCount < 3) {
+            retryCount++;                
+            ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
+            if (!auth.isAuthorize) {
+                responseObj.put('errorMessage', auth.error + ' ' + auth.message);
+                return responseObj;
+            }
+            newAccessToken = auth.accessToken;
+            req.setHeader('Authorization', 'Bearer ' + newAccessToken);
+            response = http.send(req); 
+        }
+
+        if (newAccessToken != null) {
+            shelfCred.ParallelDots__Access_Token__c = newAccessToken;
+            update shelfCred;
+        }
+
         Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
         if (response.getStatusCode() == 200) {
             System.debug(JSON.serializePretty(response.getBody()));

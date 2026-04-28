@@ -24,6 +24,7 @@ export default class EditMappingTab extends LightningElement {
     // @track sfTypeMap = {};
     // @track shelfTypeMap = {};
     @track requiredShelfFields = [];
+    @track optionalShelfFields = [];
 
     get cardTitle() {
         const src = this.sourceObject ? this.sourceObject.charAt(0).toUpperCase() + this.sourceObject.slice(1) : '';
@@ -79,26 +80,36 @@ export default class EditMappingTab extends LightningElement {
         if (!this.shelfResult) {
             return;
         }
-         console.log('shelfResult (edit flow):', JSON.stringify(this.shelfResult, null, 2));
-        const props =
-            this.shelfResult?.schema?.properties?.records?.items?.properties || {};
-        const required =
-            this.shelfResult?.schema?.properties?.records?.items?.required || [];
+        console.log('shelfResult (edit flow):', JSON.stringify(this.shelfResult, null, 2));
 
-        const localRequiredShelfFields = [...required];
-        const localTargetFields = localRequiredShelfFields.map(fieldName => ({
+        const items = this.shelfResult?.schema?.properties?.records?.items || {};
+        const props = items.properties || {};
+        const required = items.required || [];
+        const optional = items.optional || [];   // ← new
+
+        this.requiredShelfFields = [...required];
+        this.optionalShelfFields = [...optional];
+
+        const requiredTargetFields = required.map(fieldName => ({
             label: fieldName,
             type: props[fieldName]?.type || 'string',
-            value: fieldName
+            value: fieldName,
+            isRequired: true
         }));
-        const localShelfTypeMap = {};
 
-        localTargetFields.forEach(field => {
+        const optionalTargetFields = optional.map(fieldName => ({  // ← new
+            label: fieldName,
+            type: props[fieldName]?.type || 'string',
+            value: fieldName,
+            isRequired: false
+        }));
+
+        this.targetFields = [...requiredTargetFields, ...optionalTargetFields];
+
+        const localShelfTypeMap = {};
+        this.targetFields.forEach(field => {
             localShelfTypeMap[field.value] = field.type;
         });
-
-        this.requiredShelfFields = localRequiredShelfFields;
-        this.targetFields = localTargetFields;
         this.shelfTypeMap = localShelfTypeMap;
     }
 
@@ -143,7 +154,10 @@ export default class EditMappingTab extends LightningElement {
 
     get targetOptions() {
         return [
-            ...(this.targetFields || []),
+            ...(this.targetFields || []).map(f => ({
+                label: f.isRequired ? f.label : `${f.label} (optional)`,
+                value: f.value
+            })),
             { label: 'Custom', value: '__custom__' },
             { label: '--None--', value: '' }
         ];
@@ -200,34 +214,27 @@ export default class EditMappingTab extends LightningElement {
         const mappingObj = {};
         const selectedApis = [];
         const totalFields = this.sourceFields?.length || 0;
-        const requiredShelfFields = (this.targetFields || []).map(field => field.value);
+        const requiredShelfFields = this.requiredShelfFields || [];   // ← fixed
 
         (this.mappingRows || []).forEach(row => {
-
             if (this.isNew && row.include) {
+                if (row.sourceApi) { 
                 mappingObj[row.sourceApi] = row.sourceApi;
                 selectedApis.push(row.sourceApi);
+                }
             }
             if (!this.isNew && row.target) {
-
-                let targetField;
-
-                if (row.target === '__custom__') {
-                    targetField = row.sourceApi;
-
-                    //this.shelfTypeMap[targetField] = this.sfTypeMap[row.sourceApi] || 'STRING';
-                } else {
-                    targetField = row.target;
-                }
-
+                const targetField = row.target === '__custom__' ? row.sourceApi : row.target;
+                if (targetField && row.sourceApi) {
                 mappingObj[targetField] = row.sourceApi;
                 selectedApis.push(row.sourceApi);
+                }
             }
         });
+        console.log('mappingObj before dispatch:', JSON.stringify(mappingObj));
 
         if (!this.isNew) {
             const mappedTargets = Object.keys(mappingObj);
-
             const missingRequired = requiredShelfFields.filter(
                 field => !mappedTargets.includes(field)
             );
@@ -279,7 +286,8 @@ export default class EditMappingTab extends LightningElement {
 
                     salesforceObject: this.sourceObject,
                     shelfwatchObject: this.targetObject,
-                    requiredShelfFields: requiredShelfFields
+                    requiredShelfFields: requiredShelfFields,
+                    optionalShelfFields: this.optionalShelfFields
                 }
 
             })

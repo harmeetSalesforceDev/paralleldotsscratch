@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <formFactors>Small</formFactors>
+    <formFactors>Large</formFactors>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+    <isNavTabPersistenceDisabled>false</isNavTabPersistenceDisabled>
+    <isOmniPinnedViewEnabled>false</isOmniPinnedViewEnabled>
+    <label>Parallel Dots</label>
+    <navType>Standard</navType>
+    <tabs>Configuration_Page</tabs>
+    <tabs>Export_Wizard</tabs>
+    <tabs>Entity_Sync_Status</tabs>
+    <tabs>Shelfwatch_Mapping__c</tabs>
+    <tabs>Shelfwatch_Sync_Log__c</tabs>
+    <tabs>Sync_Logs</tabs>
+    <uiType>Lightning</uiType>
+    <utilityBar>Parallel_Dots_UtilityBar</utilityBar>
+</CustomApplication>

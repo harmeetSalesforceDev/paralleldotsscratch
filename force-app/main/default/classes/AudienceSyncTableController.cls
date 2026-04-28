@@ -18,7 +18,8 @@ public with sharing class AudienceSyncTableController {
 				   ParallelDots__Is_Auto_Active__c,
 				   ParallelDots__BatchJobId__c,
 				   ParallelDots__Sync_Status__c,
-				   ParallelDots__Retry_From_Id__c
+				   ParallelDots__Retry_From_Id__c,
+				   ParallelDots__API_Fail__c        
             FROM   ParallelDots__Shelfwatch_Mapping__c
             WITH SECURITY_ENFORCED
         ]) {
@@ -62,8 +63,7 @@ public with sharing class AudienceSyncTableController {
                   : '—';
 			this.isAutoActive = rec.ParallelDots__Is_Auto_Active__c;
 			this.canRetry = (this.syncStatus == 'Failed' || this.syncStatus == 'Partial Success')
-                && rec.ParallelDots__Retry_From_Id__c != null;
-				System.debug('this.canRetry: '+ this.canRetry);
+    			&& (rec.ParallelDots__Retry_From_Id__c != null || rec.ParallelDots__API_Fail__c == true);
 			this.batchJobId = rec.ParallelDots__BatchJobId__c;
         }
     }
@@ -175,43 +175,72 @@ public with sharing class AudienceSyncTableController {
 				ParallelDots__Mapping_JSON__c,
 				ParallelDots__Required_Fields__c,
 				ParallelDots__Last_Sync_Time__c,
-				ParallelDots__Retry_From_Id__c
+				ParallelDots__Retry_From_Id__c,
+				ParallelDots__First_Time_Mapping__c,  // needed by fireNext()
+				ParallelDots__API_Fail__c
 			FROM   ParallelDots__Shelfwatch_Mapping__c
 			WHERE  Id = :recordId
 			WITH   SECURITY_ENFORCED
 			LIMIT  1
 		];
 
-		if (mapRec == null || String.isBlank(mapRec.ParallelDots__Retry_From_Id__c)) return;
+		if (mapRec == null) return;
+
+		// API Fail — re-run full incremental sync via fireNext(), same as syncNow
+		if (mapRec.ParallelDots__API_Fail__c == true && String.isBlank(mapRec.ParallelDots__Retry_From_Id__c)) {
+			ShelfWatchSyncBatch.fireNext(
+				new List<ParallelDots__Shelfwatch_Mapping__c>{ mapRec },
+				0,
+				System.now()
+			);
+			return;
+		}
+
+		// Batch-level fail — retry from the failed record Id
+		if (String.isBlank(mapRec.ParallelDots__Retry_From_Id__c)) return;
 
 		Map<String, String> fieldMapping = String.isNotBlank(mapRec.ParallelDots__Mapping_JSON__c)
 			? (Map<String, String>) JSON.deserialize(mapRec.ParallelDots__Mapping_JSON__c, Map<String, String>.class)
 			: new Map<String, String>();
 
+		Map<String, Object> fieldMapClone = new Map<String, Object>();
+		for (String externalField : fieldMapping.keySet()) {
+			fieldMapClone.put(externalField, '');
+		}
+
 		String retryFromId = mapRec.ParallelDots__Retry_From_Id__c;
 
 		String query = 'SELECT IsDeleted, ' + String.join(fieldMapping.values(), ', ')
-					+ ' FROM ' + mapRec.ParallelDots__Salesforce_Object__c
-					+ ' WHERE Id >= :retryFromId'
-					+ ' ORDER BY Id ASC LIMIT 500';
+			+ ' FROM ' + mapRec.ParallelDots__Salesforce_Object__c
+			+ ' WHERE Id >= \'' + retryFromId + '\''
+			+ ' ORDER BY Id ASC';
 
 		ShelfWatchApiService.PayloadAttributes payload = new ShelfWatchApiService.PayloadAttributes();
-		payload.entity        = mapRec.ParallelDots__Shelfwatch_Object__c;
-		payload.sObjectEntity = mapRec.ParallelDots__Salesforce_Object__c;
-		payload.fieldMapping  = fieldMapping;
-		payload.entityFields  = String.isNotBlank(mapRec.ParallelDots__Required_Fields__c)
+		payload.entity            = mapRec.ParallelDots__Shelfwatch_Object__c;
+		payload.sObjectEntity     = mapRec.ParallelDots__Salesforce_Object__c;
+		payload.fieldMapping      = fieldMapping;
+		payload.fieldMappingClone = fieldMapClone;
+		payload.entityFields      = String.isNotBlank(mapRec.ParallelDots__Required_Fields__c)
 			? (List<String>) JSON.deserialize(mapRec.ParallelDots__Required_Fields__c, List<String>.class)
 			: new List<String>();
-		payload.records       = new List<SObject>();
-		payload.saveSyncTime  = true; 
+		payload.records           = new List<SObject>();
+		payload.saveSyncTime      = true;
 
-		ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
+		//ShelfWatchAuthService.AuthResponse auth = ShelfWatchAuthService.getAccessToken();
+		ParallelDots__ShelfWatch_Credentials__c shelfCred = ParallelDots__ShelfWatch_Credentials__c.getInstance('AuthCredentials');
+        String accessToken = shelfCred?.ParallelDots__Access_Token__c;
+
+
+		Integer retryCount = Database.countQuery(
+			'SELECT COUNT() FROM ' + mapRec.ParallelDots__Salesforce_Object__c
+			+ ' WHERE Id >= \'' + retryFromId + '\''
+		);
 
 		Map<String, Object> params = new Map<String, Object>{
 			'query'       => query,
 			'isFirstTime' => false,
 			'recordId'    => mapRec.Id,
-			'recordCount' => 500
+			'recordCount' => retryCount
 		};
 
 		Map<String, Object> config = new Map<String, Object>{
@@ -219,19 +248,10 @@ public with sharing class AudienceSyncTableController {
 			'payload'      => payload,
 			'allMappings'  => new List<ParallelDots__Shelfwatch_Mapping__c>{ mapRec },
 			'currentIndex' => 0,
-			'accessToken'  => auth.accessToken
+			'accessToken'  => accessToken
 		};
 
-		try {
-			update new ParallelDots__Shelfwatch_Mapping__c(
-				Id                              = recordId,
-				ParallelDots__Last_Sync_Time__c = System.now()
-			);
-		} catch (Exception e) {
-			System.debug('Failed to update Last Sync Time in retry: ' + e.getMessage());
-		}
-
-		Database.executeBatch(new ShelfWatchSyncBatch(config), 500);
+		Database.executeBatch(new ShelfWatchSyncBatch(config), 200);
 	}
 
 

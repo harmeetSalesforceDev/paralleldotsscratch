@@ -87,7 +87,8 @@ public with sharing class ObjectMetadataController {
         List<String> sfFields,
         List<String> requiredFields,
         Map<String,String> mappingJSON,
-        Integer unmappedCount
+        Integer unmappedCount,
+        List<String> optionalShelfFields
     ){
         ParallelDots__Shelfwatch_Mapping__c rec =
             new ParallelDots__Shelfwatch_Mapping__c();
@@ -100,6 +101,7 @@ public with sharing class ObjectMetadataController {
         rec.ParallelDots__Unmapped_Fields__c = unmappedCount;
         rec.Name = sfObject + ' ' + (shelfObject != null ? shelfObject : 'custom') + ' Mapping';
         rec.ParallelDots__First_Time_Mapping__c = true;
+        rec.ParallelDots__Optional_Fields__c = JSON.serialize(optionalShelfFields);
 
         List<SObject> sanitizedRecords =
             Security.stripInaccessible(
@@ -116,7 +118,8 @@ public with sharing class ObjectMetadataController {
         List<String> sfFields,
         List<String> requiredFields,
         Map<String,String> mappingJSON,
-        Integer unmappedCount
+        Integer unmappedCount,
+        List<String> optionalShelfFields
     ){
         ParallelDots__Shelfwatch_Mapping__c rec = new ParallelDots__Shelfwatch_Mapping__c(Id = recordId);
         rec.ParallelDots__Mapping_JSON__c      = JSON.serialize(mappingJSON);
@@ -128,7 +131,7 @@ public with sharing class ObjectMetadataController {
         rec.ParallelDots__Total_Synced_Records__c     = null;
         rec.ParallelDots__Total_Processed_Records__c  = null;
         rec.ParallelDots__Sync_Status__c = null;
-        rec.ParallelDots__First_Time_Mapping__c = true;
+        rec.ParallelDots__Optional_Fields__c = JSON.serialize(optionalShelfFields);
 
         List<SObject> sanitized =
             Security.stripInaccessible(

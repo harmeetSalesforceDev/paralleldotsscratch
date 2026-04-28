@@ -14,6 +14,7 @@ export default class StartImportTab extends LightningElement {
 
     @api sfFields = [];
     @api requiredShelfFields = [];
+    @api optionalShelfFields = [];
     @api shelfObject;
     @api sfObject;
 
@@ -42,7 +43,8 @@ export default class StartImportTab extends LightningElement {
                 recordId: this.editRecordId,
                 requiredFields: this.requiredShelfFields,
                 sfFields: this.sfFields,
-                unmappedCount: this.unmappedCount
+                unmappedCount: this.unmappedCount,
+                optionalShelfFields: this.optionalShelfFields
             })
             : createShelfMapping({
                 mappingJSON: this.mapping,
@@ -50,7 +52,8 @@ export default class StartImportTab extends LightningElement {
                 sfFields: this.sfFields,
                 sfObject: this.sfObject,
                 shelfObject: this.shelfObject,
-                unmappedCount: this.unmappedCount
+                unmappedCount: this.unmappedCount,
+                optionalShelfFields: this.optionalShelfFields
             });
 
         savePromise

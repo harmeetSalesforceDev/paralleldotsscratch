@@ -1,7 +1,6 @@
 import getMappingById from '@salesforce/apex/AudienceSyncTableController.getMappingById';
 import getFields from '@salesforce/apex/ObjectMetadataController.getFields';
 import getShelfFields from '@salesforce/apex/ObjectMetadataController.getShelfFields';
-import verifyAuthentication from '@salesforce/apex/ShelfWatchAuthService.verifyAuthentication';
 import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -16,25 +15,13 @@ export default class selectWizard extends LightningElement {
     sfObject;
     shelfObject;
     @track requiredShelfFields = [];
+    @track optionalShelfFields = [];
     editRecordId;
     @track isLoading = false;
 
     selectedObj2Label;
     savedMappingRows;
 
-    @track isAuthorized = false;
-    @track authChecked = false;
-
-    @wire(verifyAuthentication)
-    wiredAuth({ data, error }) {
-        if (data) {
-            this.isAuthorized = data.isAuthorize === true;
-            this.authChecked = true;
-        } else if (error) {
-            this.isAuthorized = false;
-            this.authChecked = true;
-        }
-    }
 
     @wire(CurrentPageReference)
     handlePageRef(pageRef) {
@@ -109,6 +96,7 @@ export default class selectWizard extends LightningElement {
         this.requiredShelfFields = event.detail.requiredShelfFields;
         this.currentStep = 'step3';
         this.savedMappingRows = event.detail.mappingRows;
+        this.optionalShelfFields = event.detail.optionalShelfFields;
     }
 
     handleBack() {

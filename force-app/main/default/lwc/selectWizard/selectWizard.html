@@ -1,79 +1,63 @@
 <template>
     <lightning-card>
-        <template if:false={authChecked}>
-            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
         </template>
+        <template if:false={isLoading}>
+            <div class="stepper-wrapper">
+                <div class="stepper">
 
-        <template if:true={authChecked}>
-            <template if:true={isLoading}>
-                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
-            </template>
-            <template if:true={isAuthorized}>
-                <div class="stepper-wrapper">
-                    <div class="stepper">
-
-                        <div class={step1Class}>
-                            <div class="step-circle">
-                                <template if:true={isStep1Active}>1</template>
-                                <template if:true={isStep1Done}>✓</template>
-                                <template if:false={isStep1ActiveOrDone}>1</template>
-                            </div>
-                            <span class="step-label">Select Object</span>
+                    <div class={step1Class}>
+                        <div class="step-circle">
+                            <template if:true={isStep1Active}>1</template>
+                            <template if:true={isStep1Done}>✓</template>
+                            <template if:false={isStep1ActiveOrDone}>1</template>
                         </div>
-
-                        <div class="step-line"></div>
-
-                        <div class={step2Class}>
-                            <div class="step-circle">
-                                <template if:true={isStep2Active}>2</template>
-                                <template if:true={isStep2Done}>✓</template>
-                                <template if:false={isStep2ActiveOrDone}>2</template>
-                            </div>
-                            <span class="step-label">Select &amp; Map Fields</span>
-                        </div>
-
-                        <div class="step-line"></div>
-
-                        <div class={step3Class}>
-                            <div class="step-circle">3</div>
-                            <span class="step-label">Save</span>
-                        </div>
-
+                        <span class="step-label">Select Object</span>
                     </div>
+
+                    <div class="step-line"></div>
+
+                    <div class={step2Class}>
+                        <div class="step-circle">
+                            <template if:true={isStep2Active}>2</template>
+                            <template if:true={isStep2Done}>✓</template>
+                            <template if:false={isStep2ActiveOrDone}>2</template>
+                        </div>
+                        <span class="step-label">Select &amp; Map Fields</span>
+                    </div>
+
+                    <div class="step-line"></div>
+
+                    <div class={step3Class}>
+                        <div class="step-circle">3</div>
+                        <span class="step-label">Save</span>
+                    </div>
+
                 </div>
-                <template if:false={isLoading}>
-                    <template if:true={isStep1}>
-                        <c-select-object-tab selected-obj1={selectedObj1} selected-obj2={selectedObj2}
-                            selected-obj2-label={selectedObj2Label} onnextstep={handleNext}>
-                        </c-select-object-tab>
-                    </template>
-
-                    <template if:true={isStep2}>
-                        <c-edit-mapping-tab hide-back={isEditFlow} source-object={selectedObj2} target-object={selectedObj1}
-                            is-new={isNewEntity} saved-mapping={mapping} shelf-result={shelfResult}
-                            saved-mapping-rows={savedMappingRows} onnext={handleStep3} onback={handleBack} oncancel={handleCancel}>
-                        </c-edit-mapping-tab>
-                    </template>
-
-                    <template if:true={isStep3}>
-                        <c-start-import-tab mapping={mapping} is-new-entity={isNewEntity} total-fields={totalFields}
-                            sf-fields={sfFields} required-shelf-fields={requiredShelfFields} shelf-object={shelfObject}
-                            sf-object={sfObject} onprevious={handleBack2} onstartimport={handleImport}
-                            edit-record-id={editRecordId}>
-                        </c-start-import-tab>
-                    </template>
+            </div>
+                <template if:true={isStep1}>
+                    <c-select-object-tab selected-obj1={selectedObj1} selected-obj2={selectedObj2}
+                        selected-obj2-label={selectedObj2Label} onnextstep={handleNext}>
+                    </c-select-object-tab>
                 </template>
-            </template>
-            <template if:false={isAuthorized}>
-                <template if:false={isLoading}>
-                    <div class="slds-p-around_large slds-text-align_center">
-                        <lightning-icon icon-name="utility:lock" size="medium" variant="error"></lightning-icon>
-                        <p class="slds-m-top_small slds-text-heading_small">
-                            You are not authorized to access this feature. Please configure your ShelfWatch credentials.
-                        </p>
-                    </div>
+
+                <template if:true={isStep2}>
+                    <c-edit-mapping-tab hide-back={isEditFlow} source-object={selectedObj2} target-object={selectedObj1}
+                        is-new={isNewEntity} saved-mapping={mapping} shelf-result={shelfResult}
+                        saved-mapping-rows={savedMappingRows} onnext={handleStep3} onback={handleBack}
+                        oncancel={handleCancel}>
+                    </c-edit-mapping-tab>
                 </template>
-            </template>
+
+                <template if:true={isStep3}>
+                    <c-start-import-tab mapping={mapping} is-new-entity={isNewEntity} total-fields={totalFields}
+                        sf-fields={sfFields} required-shelf-fields={requiredShelfFields} shelf-object={shelfObject}
+                        sf-object={sfObject} onprevious={handleBack2} onstartimport={handleImport}
+                        optional-shelf-fields={optionalShelfFields} edit-record-id={editRecordId}>
+                    </c-start-import-tab>
+                </template>
         </template>
 
     </lightning-card>
